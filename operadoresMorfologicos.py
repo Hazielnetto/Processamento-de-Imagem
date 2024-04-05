@@ -42,10 +42,10 @@ def topHatBlackHat(img):
     imgTratada: Imagem após aplicar as operações.
     topHat: Imagem resultante da operação Top Hat.
     """
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     topHat = cv2.morphologyEx(img, cv2.MORPH_TOPHAT, kernel)
-    blackHat = cv2.morphologyEx(img, cv2.MORPH_BLACKHAT, kernel)
-    imgTratada = img + topHat - blackHat
+    erosion = cv2.erode(img, kernel, iterations=2)
+    imgTratada = (img + topHat) - erosion
     return imgTratada, topHat
 
 def limiarizacaoMultiplos(topHat):
@@ -59,7 +59,7 @@ def limiarizacaoMultiplos(topHat):
     resultadosTopHat: Lista contendo imagens após a limiarização.
     """
     resultadosTopHat = []
-    for limiarTopHat in range(15, 255, 2):
+    for limiarTopHat in range(15, 255, 5):
         _, resTopHat = cv2.threshold(topHat, limiarTopHat, 255, cv2.THRESH_BINARY)
         resultadosTopHat.append(resTopHat)
     return resultadosTopHat
@@ -123,7 +123,7 @@ def aplicarMascara(res, mascara):
     res[mascara == 0] = 0
     return res
 
-def plotarImagens(imgOriginal, imgProcessada, imgCalcificacoes):
+def plotarImagens(imgOriginal, imgProcessada, imgCalcificacoes, valorOtsu):
     """
     Plota as imagens original, processada e com as calcificações detectadas.
 
@@ -143,7 +143,7 @@ def plotarImagens(imgOriginal, imgProcessada, imgCalcificacoes):
     axs[1].axis('off')
 
     axs[2].imshow(imgCalcificacoes, cmap='bone')
-    axs[2].set_title('Calcificações Detectadas')
+    axs[2].set_title(f'Calcificações Detectadas (Limiar Otsu = {valorOtsu})')
     axs[2].axis('off')
 
     fig.suptitle('Análise de Imagens', fontsize=16)
@@ -155,21 +155,26 @@ def plotarImagens(imgOriginal, imgProcessada, imgCalcificacoes):
 
 def main():
     caminhoImagem = "Processamento de Imagem\\mama.png"
+    ##caminhoImagem = "Processamento de Imagem\\mama2.png"
+    ##caminhoImagem = "Processamento de Imagem\\mama2.jpeg"
 
     # Pré-processamento
     img = preprocessarImagem(caminhoImagem)
     imgTratada, topHat = topHatBlackHat(img)
 
-    _, imgTratadaBinarizada = cv2.threshold(imgTratada, 175, 255, cv2.THRESH_BINARY)
-
+    # Detecção de bordas
+    otsu, imgTratadaBinarizada = cv2.threshold(topHat, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    if otsu < 15:
+        otsu, imgTratadaBinarizada = cv2.threshold(topHat, 15, 255, cv2.THRESH_BINARY)
+    
     # Limiarização com múltiplos limiares
-    resultadosLimiarizacao = limiarizacaoMultiplos(topHat)
+    resultadosLimiarizacao = limiarizacaoMultiplos(imgTratada)
     combinado = combinarLimiares(resultadosLimiarizacao, imgTratadaBinarizada)
 
     # Pós-processamento
     imagemFinal = desfoqueMediana(combinado)
 
-    plotarImagens(img, imgTratada, imagemFinal)
+    plotarImagens(img, imgTratada, imagemFinal, otsu)
 
 if __name__ == "__main__":
     main()
