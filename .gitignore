@@ -1,1 +1,19 @@
-!*.py
+# ignore ALL this files
+*.class
+*.md
+*.code-workspace
+*.png
+*.jpeg
+
+# DO NOT ignore this
+!README.md
+!run.bat
+
+# ignore ALL this files in this directory
+temp/
+files/
+outputs/
+
+# ignore this folders
+.vscode
+
