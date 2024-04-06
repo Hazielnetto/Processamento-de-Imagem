@@ -176,5 +176,4 @@ def main():
 
     plotarImagens(img, imgTratada, imagemFinal, otsu)
 
-if __name__ == "__main__":
-    main()
+main()
