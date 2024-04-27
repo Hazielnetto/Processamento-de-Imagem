@@ -2,8 +2,6 @@
 *.class
 *.md
 *.code-workspace
-*.png
-*.jpeg
 
 # DO NOT ignore this
 !README.md
