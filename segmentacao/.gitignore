@@ -2,8 +2,6 @@
 *.class
 *.md
 *.code-workspace
-*.png
-*.jpeg
 *.zip
 
 # DO NOT ignore this
