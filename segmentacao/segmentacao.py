@@ -1,82 +1,105 @@
 import os
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
+import cv2, os
+import matplotlib.pyplot as plt
+from prettytable import PrettyTable
 
-param_1 = 20
-param_2 = 31
+def processarImagem(imgPosKmeans):
+    imgEscalaCinza = cv2.cvtColor(imgPosKmeans, cv2.COLOR_BGR2GRAY)
+    imgLimiarizada = fazLimiarizacao(imgEscalaCinza)
 
-def segmentarIris(img):
+    kernel = np.ones((5, 5), np.uint8)
+    image = cv2.erode(imgLimiarizada, kernel, iterations=1)
+    image = cv2.dilate(image, kernel, iterations=1)
+    
+    return image
+
+def fazKmeans(image):
+    Z = image.reshape((-1,3))
+    Z = np.float32(Z)
+    
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+    K = 3
+    _, label, center = cv2.kmeans(Z, K, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+    center = np.uint8(center)
+    res = center[label.flatten()]
+    res2 = res.reshape((image.shape))
+    return res2
+
+def fazLimiarizacao(imgEscalaCinza):    
+    histograma = cv2.calcHist([imgEscalaCinza], [0], None, [256], [0, 256])    
+    indHist = np.nonzero(histograma.flatten())[0] 
+
+    maisEscuro = indHist[1]   
+    maisClaro = indHist[2]  
+
+    minimo = maisEscuro / 2  
+    maximo = (maisClaro + maisEscuro) / 2
+
+    imgLimiarizada = cv2.inRange(imgEscalaCinza, minimo, maximo)
+
+    return imgLimiarizada
+
+def encontrarContorno(image):
     """
-    Segmenta a íris em uma imagem.
+    Encontra o maior contorno na imagem binarizada.
 
-    Args:
-        img (numpy.ndarray): Imagem de entrada (colorida).
+    Argumentos:
+    binarizada: Imagem binarizada.
 
-    Returns:
-        numpy.ndarray: Imagem da íris segmentada.
-    """
-    roi = cv2.medianBlur(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 3)
-    _, threshold = cv2.threshold(roi, 100, 255, cv2.THRESH_BINARY)
+    Retorna:
+    maiorContorno: Maior contorno encontrado.
+    """    
+    contorno, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    return contorno
 
-    circles = None
-    min_radius = 80
-    max_radius = 200
+def plotarImagens(img, imgPosKmeans, imgTratada, contorno, imagemContornada):
+    
+    fig, axs = plt.subplots(1, 4, figsize=(24, 6), facecolor='gray')
+            
+    axs[0].imshow(img)
+    axs[0].set_title('Imagem Original')
+    axs[0].axis('off')
+    
+    axs[1].imshow(imgPosKmeans)
+    axs[1].set_title('Imagem Processada')
+    axs[1].axis('off')
+             
+    axs[2].imshow(imgTratada, cmap = "gray")
+    axs[2].set_title(f'Núcleo Destacado')
+    axs[2].axis('off')
+    
+    axs[3].imshow(imagemContornada)
+    axs[3].set_title(f'Núcleos Detectados: {str(len(contorno))}')
+    axs[3].axis('off')
 
-    while circles is None or circles.size == 0:
-        circles = cv2.HoughCircles(threshold, cv2.HOUGH_GRADIENT,
-                                   2, 2000,
-                                   param1=param_1,
-                                   param2=param_2,
-                                   minRadius=min_radius,
-                                   maxRadius=max_radius)
-        max_radius += 10
+    fig.suptitle('Segmentação de Objetos', fontsize=16)
+    plt.subplots_adjust(wspace=0.3)
 
-    circles = np.uint16(np.around(circles))
-    mascara = np.zeros_like(img)
+    plt.show()
 
-    for i in circles[0, :]:
-        cv2.circle(mascara, (i[0], i[1]), i[2], (255, 255, 255), -1)
+def criarTabela(imagem, contorno):    
+    table.add_row([imagem, str(len(contorno))])    
+    table.field_names = ["Imagem", "Qtd Núcleos"]
 
-    return cv2.bitwise_and(img, mascara)
+    print(table)    
 
-def removerPupila(img):
-    """
-    Remove a pupila da imagem.
+def main():
+    caminho = "segmentacao/datasets/"
+    for imagens in os.listdir(caminho):               
 
-    Args:
-        img (numpy.ndarray): Imagem de entrada (colorida).
+        imagem = caminho + imagens
+        img = cv2.imread(imagem)
+        imgPosKmeans = fazKmeans(img)
+        imgTratada = processarImagem(imgPosKmeans)
+        contorno = encontrarContorno(imgTratada)
+        imagemContornada = cv2.drawContours(img, contorno, -1, 255, 1)
 
-    Returns:
-        numpy.ndarray: Imagem sem a pupila.
-    """
-    roi = cv2.medianBlur(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 5)
-    _, threshold = cv2.threshold(roi, 30, 255, cv2.THRESH_BINARY)
+        plotarImagens(img, imgPosKmeans, imgTratada, contorno, imagemContornada)
+        
+        criarTabela(imagens, contorno)
+        
+table = PrettyTable()
 
-    circles = cv2.HoughCircles(threshold, cv2.HOUGH_GRADIENT,
-                               2, 500,
-                               param1=param_1,
-                               param2=param_2,
-                               minRadius=20,
-                               maxRadius=50)
-
-    circles = np.uint16(np.around(circles))
-    mascara = np.full_like(img, 255)
-
-    for i in circles[0, :]:
-        cv2.circle(mascara, (i[0], i[1]), i[2], (0, 0, 0), -1)
-
-    return cv2.bitwise_and(img, mascara)
-
-if __name__ == '__main__':
-    for imgFile in os.listdir('HOUGH HAARCASCADE E SIFT/iris/saída'):
-        os.remove(os.path.join('HOUGH HAARCASCADE E SIFT/iris/saída', imgFile))
-
-    for fileName in os.listdir('HOUGH HAARCASCADE E SIFT/iris/imagens'):
-        img = cv2.imread(os.path.join('HOUGH HAARCASCADE E SIFT/iris/imagens', fileName))
-        iris = segmentarIris(img)
-        irisSemPupila = removerPupila(iris)
-
-        plt.imshow(irisSemPupila)
-        plt.axis('off')
-        plt.savefig(os.path.join('HOUGH HAARCASCADE E SIFT/iris/saída', fileName), format='jpg', dpi=300)
+main()
