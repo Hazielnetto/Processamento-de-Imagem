@@ -1,4 +1,4 @@
-#Alunos: Haziel Netto, Pedro Schumann e Vinícius Zoz
+#Alunos: Haziel Netto e Vinícius Zoz
 
 import os
 
