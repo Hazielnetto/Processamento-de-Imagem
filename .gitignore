@@ -1,18 +1,44 @@
-# ignore ALL this files
+# ! NÃO ignorar !
+!README.md
+!main.py
+!*.py
+
+# nomes de arquivos
+rascunho*
+teste*
+test*
+
+# extensões
 *.class
 *.md
 *.code-workspace
 *.zip
 
-# DO NOT ignore this
-!README.md
-!run.bat
-
-# ignore ALL this files in this directory
+# diretorios
 temp/
 files/
 outputs/
+files/
 
-# ignore this folders
+# pastas
 .vscode
+.teste
+.log
 
+# videos
+*.3g2
+*.3gp
+*.asf
+*.asx
+*.avi
+*.flv
+*.mkv
+*.mov
+*.mp4
+*.mpg
+*.ogv
+*.rm
+*.swf
+*.vob
+*.wmv
+*.webm
