@@ -13,12 +13,16 @@ test*
 *.md
 *.code-workspace
 *.zip
+*.rar
+*.json
+*.yml
 
 # diretorios
 temp/
 files/
 outputs/
 files/
+node_modules/
 
 # pastas
 .vscode
