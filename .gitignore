@@ -23,11 +23,15 @@ files/
 outputs/
 files/
 node_modules/
+saida/
+saidas/
 
 # pastas
 .vscode
 .teste
 .log
+
+# imagens
 
 # videos
 *.3g2
