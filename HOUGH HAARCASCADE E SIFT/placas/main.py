@@ -1,113 +1,93 @@
-import cv2, os, time
+import cv2
+import os
 import numpy as np
-import matplotlib.pyplot as plt
 from prettytable import PrettyTable
 
 pontos = []
 
 
 def aprimoraImagems(img):
-
-    resized = cv2.resize(img, (512, 512))
-    alpha = 2.5  # Contrast control (1.0-3.0)
+    resized = cv2.resize(img, (256, 256))
+    alpha = 1  # Contrast control (1.0-3.0)
     beta = 50  # Brightness control (0-100)
     adjusted = cv2.convertScaleAbs(resized, alpha=alpha, beta=beta)
     imgFinal = cv2.cvtColor(adjusted, cv2.COLOR_BGR2GRAY)
-
     return adjusted
 
 
 def carregaImagens(caminho):
 
-    global imgT
-    imgEntrada = []
-    imgTeste = []
-    caminhoEntrada = caminho + r"\entrada"
-    caminhoTeste = caminho + r"\dataset"
+    global imgT, alg
+    caminhoEntrada = os.path.join(caminho, "entrada")
+    caminhoTeste = os.path.join(caminho, "dataset")
     i = 0
-
-    for imgT in os.listdir(caminhoTeste):
-        imgTeste = cv2.imread(os.path.join(caminhoTeste, imgT))
+    for alg in range(2):
         for imgE in os.listdir(caminhoEntrada):
             imgEntrada = cv2.imread(os.path.join(caminhoEntrada, imgE))
-            imgEntrada = aprimoraImagems(imgEntrada)
-            imgSaida = executaSIFT(imgEntrada, imgTeste)
+            aprimoraImagems(imgEntrada)
+            for pasta in os.listdir(caminhoTeste):
+                nomeArquivo, _ = os.path.splitext(imgE)
+                if nomeArquivo == pasta:
+                    pasta = os.path.join(caminhoTeste, pasta)
+                    for imgT in os.listdir(pasta):
+                        imgTeste = cv2.imread(
+                            os.path.join(caminhoTeste, pasta, imgT))
+                        if alg == 0:
+                            imgSaida_sift = executaSIFT(imgEntrada, imgTeste)
+                            cv2.imwrite(
+                                os.path.join(caminho, 'saida',
+                                             f'saida_sift_{i}.jpg'),
+                                imgSaida_sift)
+                        elif alg == 1:
+                            imgSaida_orb = executaORB(imgEntrada, imgTeste)
+                            cv2.imwrite(
+                                os.path.join(caminho, 'saida',
+                                             f'saida_orb_{i}.jpg'),
+                                imgSaida_orb)
 
-            cv2.imwrite(os.path.join(caminho, 'saida', f'saida{[i]}.jpg'),
-                        imgSaida)
-            i += 1
-
-    return imgSaida
+                    i += 1
 
 
 def calculaPontos(ponto):
-
-    global pontos
-    pontos.append(ponto)
-    resultado = ""
-    i = 0
-    if len(pontos) == 3:
-        if pontos[i] > pontos[i + 1]:
-            if pontos[i] > pontos[i + 2]:
-                resultado = "limite de velocidade"
-            elif pontos[i] < pontos[i + 2]:
-                resultado = "pare"
-            else:
-                resultado = "lombada"
-
-        print(imgT, " ", resultado)
-        pontos = []
-        geraTabela(imgT, resultado)
-        
-    """if len(pontos) == 3:
-        for i in range(2):
-            if pontos[i-1] > pontos[i]:
-                if i == 0:
-                    resultado = "limite de velocidade"
-                elif i == 1:
-                    resultado = "lombada"
-                elif i == 2:
-                    resultado = "pare"
-            i-=1"""
+    geraTabela(imgT, ponto)
 
 
 def geraTabela(nomeImg, resultado):
-    """
-    Adiciona uma entrada a uma tabela com o nome da imagem e a quantidade de contornos encontrados
-
-    Argumentos:
-    imagem: Nome da imagem processada
-    contorno: Lista de contornos detectados na imagem
-    """
-
-    table.add_row([nomeImg, resultado])
-    table.field_names = ["Imagem", "Resultado"]
+    global table
+    if alg == 0:
+        algoritmoNome = "SIFT"
+    else:
+        algoritmoNome = "ORB"
+    table.add_row([nomeImg, resultado, algoritmoNome])
+    table.field_names = ["Imagem", "Pontos Detectados", "Algoritmo"]
 
 
 def executaSIFT(imgEntrada, imgTeste):
-
-    # Inicializar o detector SIFT
     sift = cv2.SIFT_create()
+    return executa_algoritmo(imgEntrada, imgTeste, sift)
 
-    # Encontrar os pontos-chave e descritores nas imagens
-    pontos_chave_entrada, descritores_entrada = sift.detectAndCompute(
+
+def executaORB(imgEntrada, imgTeste):
+    orb = cv2.ORB_create()
+    return executa_algoritmo(imgEntrada, imgTeste, orb)
+
+
+def executa_algoritmo(imgEntrada, imgTeste, algoritmo):
+    pontos_chave_entrada, descritores_entrada = algoritmo.detectAndCompute(
         imgEntrada, None)
-    pontos_chave_teste, descritores_teste = sift.detectAndCompute(
+    pontos_chave_teste, descritores_teste = algoritmo.detectAndCompute(
         imgTeste, None)
 
-    # Realizar a correspondência entre os descritores
     bf = cv2.BFMatcher()
     correspondencias = bf.knnMatch(descritores_entrada, descritores_teste, k=2)
 
-    # Filtrar correspondências com base na distância
     boas_correspondencias = []
     for m, n in correspondencias:
-        if (m.distance < 0.75 * n.distance):
+        if m.distance < 0.75 * n.distance:
             boas_correspondencias.append(m)
 
     calculaPontos(len(boas_correspondencias))
 
-    # Desenhar as correspondências na imagem de saída
     imgSaida = cv2.drawMatches(imgEntrada,
                                pontos_chave_entrada,
                                imgTeste,
@@ -115,12 +95,6 @@ def executaSIFT(imgEntrada, imgTeste):
                                boas_correspondencias,
                                None,
                                flags=2)
-
-    # Mostrar a imagem de saída
-    #cv2.imshow("Correspondências", imgSaida)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
-
     return imgSaida
 
 
@@ -132,6 +106,7 @@ def main():
         os.remove(os.path.join(caminhoSaida, imgFile))
 
     carregaImagens(caminho)
+    print(table)
 
 
 if __name__ == "__main__":
