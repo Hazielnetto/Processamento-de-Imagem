@@ -1,3 +1,5 @@
+#Alunos: Haziel Netto e Vinícius Zoz
+
 import cv2
 import os
 import numpy as np

@@ -65,15 +65,21 @@ def removerPupila(img):
     imgFinal = cv2.bitwise_and(img, mascara)
     return imgFinal
 
-if __name__ == '__main__':
-    for imgFile in os.listdir('saída'):
-        os.remove(os.path.join('saída', imgFile))
+def main():
+    saida = r"E:\Documentos\Trabalhos FURB\Processamento de Imagem\HOUGH HAARCASCADE E SIFT\iris\saída"
+    imagens = r"E:\Documentos\Trabalhos FURB\Processamento de Imagem\HOUGH HAARCASCADE E SIFT\iris\imagens"
+    for imgFile in os.listdir(saida):
+        os.remove(os.path.join(saida, imgFile))
 
-    for fileName in os.listdir('imagens'):
-        img = cv2.imread(os.path.join('imagens', fileName))
+    for fileName in os.listdir(imagens):
+        img = cv2.imread(os.path.join(imagens, fileName))
         iris = segmentarIris(img)
         irisSemPupila = removerPupila(iris)
 
         plt.imshow(irisSemPupila)
         plt.axis('off')
-        plt.savefig(os.path.join('saída', fileName), format='jpg', dpi=300)
+        plt.savefig(os.path.join(saida, fileName), format='jpg', dpi=100)
+        
+if __name__ == '__main__':
+    main()
+    

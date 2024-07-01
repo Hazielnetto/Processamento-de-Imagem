@@ -1,4 +1,4 @@
-# Autores: Haziel Netto e Vinicius Zoz
+#Alunos: Haziel Netto e Vinícius Zoz
 
 import cv2
 import numpy as np 
